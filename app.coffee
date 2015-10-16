@@ -10,7 +10,7 @@ Keys = require('./app/js/RedisKeyBuilder')
 Errors = require "./app/js/Errors"
 HttpController = require "./app/js/HttpController"
 MongoHealthCheck = require('./app/js/MongoHealthCheck')
-
+enableGracefulShutdown = require "server-graceful-shutdown"
 redis = require("redis-sharelatex")
 rclient = redis.createClient(Settings.redis.web)
 
@@ -25,6 +25,9 @@ app.configure ->
 	app.use(Metrics.http.monitor(logger));
 	app.use express.bodyParser()
 	app.use app.router
+	app.use (req, res, next) ->
+		return next() if not Settings.shuttingDown
+		res.set('Connection', 'close') # close keep-alive connections
 
 rclient.subscribe("pending-updates")
 rclient.on "message", (channel, doc_key) ->
@@ -80,19 +83,29 @@ app.use (error, req, res, next) ->
 	else
 		res.send(500, "Oops, something went wrong")
 
-shutdownCleanly = (signal) ->
+shutdownCleanly = () ->
 	return () ->
-		logger.log signal: signal, "received interrupt, cleaning up"
+		return if Settings.shuttingDown # avoid double shutdowns
 		Settings.shuttingDown = true
-		setTimeout () ->
-			logger.log signal: signal, "shutting down"
+		# FIXME stop all redis workers too and wait for them to shut down see DispatchManager above
+		server.shutdown () ->
+			logger.log "closed remaining connections, exiting gracefully"
+			rclient.quit() # close redis connection and ensure all data sent
+			# FIXME close mongo?
 			process.exit()
+		setTimeout () ->
+			logger.error "shutting down forcefully"
+			process.exit(1)
 		, 10000
 
 port = Settings.internal?.documentupdater?.port or Settings.apis?.documentupdater?.port or 3003
 host = Settings.internal.documentupdater.host or "localhost"
-app.listen port, host, ->
+server = app.listen port, host, ->
 	logger.info "Document-updater starting up, listening on #{host}:#{port}"
 
+enableGracefulShutdown server, 5000
+
 for signal in ['SIGINT', 'SIGHUP', 'SIGQUIT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM', 'SIGABRT']
-	process.on signal, shutdownCleanly(signal)
+	process.on signal, () ->
+		logger.log signal: signal, "received interrupt, cleaning up"
+		shutdownCleanly()

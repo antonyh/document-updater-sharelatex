@@ -19,6 +19,7 @@
     "settings-sharelatex": "git+https://github.com/sharelatex/settings-sharelatex.git#v1.0.0",
     "logger-sharelatex": "git+https://github.com/sharelatex/logger-sharelatex.git#v1.0.0",
     "metrics-sharelatex": "git+https://github.com/sharelatex/metrics-sharelatex.git#v1.0.0",
+    "server-graceful-shutdown": "^0.1.2",
     "sinon": "~1.5.2",
     "mongojs": "0.9.11",
     "redis-sharelatex": "0.0.9"
