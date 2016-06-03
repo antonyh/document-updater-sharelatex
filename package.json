@@ -17,7 +17,7 @@
     "lynx": "0.0.11",
     "coffee-script": "1.4.0",
     "settings-sharelatex": "git+https://github.com/sharelatex/settings-sharelatex.git#v1.0.0",
-    "logger-sharelatex": "git+https://github.com/sharelatex/logger-sharelatex.git#v1.0.0",
+    "logger-sharelatex": "git+https://github.com/sharelatex/logger-sharelatex.git#v1.4.0",
     "metrics-sharelatex": "git+https://github.com/sharelatex/metrics-sharelatex.git#v1.0.0",
     "sinon": "~1.5.2",
     "mongojs": "0.9.11",
